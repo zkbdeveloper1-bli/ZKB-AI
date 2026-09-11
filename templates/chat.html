@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZKB AI Workspace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-content">
+                <div class="brand">
+                    <span class="brand-mark">ZKB</span><span class="brand-tag">AI</span>
+                </div>
+
+                <a href="/chat" class="new-chat-btn">+ New chat</a>
+
+                {% if current_user.is_authenticated %}
+                    <div class="sidebar-section-label">This session</div>
+                    <button id="clear-history-btn">Clear history</button>
+                {% endif %}
+
+                <div class="sidebar-links">
+                    {% if current_user.is_authenticated %}
+                        <div class="user-chip">
+                            <span class="dot"></span>
+                            {{ current_user.username }}{% if current_user.is_admin %} · admin{% endif %}
+                        </div>
+                        <a href="/logout">Log out</a>
+                    {% else %}
+                        <a href="/login" class="auth-link-btn primary">Log in</a>
+                        <a href="/signup" class="auth-link-btn secondary">Sign up</a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="resizer" id="resizer"></div>
+        </div>
+
+        <!-- Main -->
+        <div class="main-chat">
+            <div class="mobile-topbar">
+                <button id="mobile-menu-btn" class="icon-btn" aria-label="Toggle menu">☰</button>
+                <span class="brand-mark">ZKB AI</span>
+            </div>
+
+            <div id="chat-box" class="chat-box">
+                {% if not current_user.is_authenticated %}
+                    <div class="guest-banner">
+                        You're chatting as a guest — nothing will be saved. <a href="/login">Log in</a> to keep your history.
+                    </div>
+                {% endif %}
+
+                <div id="thread" class="thread">
+                    {% if not history %}
+                        <div class="empty-state">
+                            <span class="brand-mark">ZKB AI</span>
+                            <p>Ask a question, share a file, or start a conversation.</p>
+                        </div>
+                    {% endif %}
+                    {% for msg in history %}
+                        <div class="message {{ msg.sender }}">
+                            <div class="avatar">{{ 'Z' if msg.sender == 'ai' else 'Y' }}</div>
+                            <div class="message-body">
+                                <div class="message-meta">
+                                    <span class="message-sender">{{ 'ZKB AI' if msg.sender == 'ai' else 'You' }}</span>
+                                    <span class="message-time">{{ msg.created_at.strftime('%H:%M') }}</span>
+                                </div>
+                                <div class="message-text" data-raw="{{ msg.text or '' }}">{{ msg.text }}</div>
+                                {% if msg.file_path %}
+                                    {% if msg.file_path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')) %}
+                                        <a href="{{ msg.file_path }}" target="_blank" class="attachment-preview">
+                                            <img src="{{ msg.file_path }}" alt="{{ msg.file_name or 'attachment' }}">
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ msg.file_path }}" target="_blank" class="attachment-file">📄 {{ msg.file_name or 'Download file' }}</a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="chat-input-wrap">
+                <div style="width:100%; max-width:720px; display:flex; flex-direction:column; align-items:center; margin:0 auto;">
+                    <div id="file-indicator" class="file-indicator"></div>
+                    <form id="chat-form" class="chat-input-area" enctype="multipart/form-data">
+                        <textarea id="user-input" name="message" placeholder="Message ZKB AI…" rows="1" autocomplete="off"></textarea>
+                        <input type="file" id="file-input" name="file" style="display:none;">
+                        <button type="button" class="icon-btn" onclick="document.getElementById('file-input').click()" aria-label="Attach file">📎</button>
+                        <button type="submit" id="send-btn" class="icon-btn send-btn" aria-label="Send message">➤</button>
+                    </form>
+                    <div class="hint">Enter to send · Shift + Enter for a new line</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Markdown rendering for AI replies (headings, code blocks, links) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <script>
+        // Render markdown into existing AI history messages on load.
+        document.querySelectorAll('.message.ai .message-text').forEach(el => {
+            const raw = el.dataset.raw || '';
+            if (window.marked && window.DOMPurify) {
+                el.innerHTML = window.DOMPurify.sanitize(window.marked.parse(raw, { breaks: true }));
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

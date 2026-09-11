@@ -1,0 +1,9 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+Werkzeug
+google-genai
+python-dotenv
+Pillow
+gunicorn
+psycopg2-binary
